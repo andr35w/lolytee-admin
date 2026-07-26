@@ -194,7 +194,7 @@ export default function AdminDashboard() {
   };
 
   const deleteOrder = async (id) => {
-    const { error } = await supabase.from("orders").delete().eq("id", id);
+    const { error } = await supabase.from("orders").delete();
     if (error) {
       setLoadError("Could not delete this order — please try again.");
     } else {
