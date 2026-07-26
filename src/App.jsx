@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Plus, Search, LogOut, Phone, Calendar, User, Trash2, Pencil, X, ChefHat, ClipboardList, Loader2, RefreshCw } from "lucide-react";
 
@@ -78,6 +78,7 @@ export default function AdminDashboard() {
   const [staffName, setStaffName] = useState("");
 
   const [orders, setOrders] = useState([]);
+  const loadRequestId = useRef(0); // incremented each time we start a load, so we can ignore stale responses
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -120,12 +121,17 @@ export default function AdminDashboard() {
 
   // Load orders from shared storage once authed
   const loadOrders = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
     setLoading(true);
     setLoadError("");
     const { data, error } = await supabase
       .from("orders")
       .select("*")
       .order("created_at", { ascending: false });
+
+    // If a newer refresh started while this one was in flight, ignore this
+    // older response so it can't overwrite fresher data.
+    if (requestId !== loadRequestId.current) return;
 
     if (error) {
       setLoadError("Could not load orders — check your connection and try again.");
