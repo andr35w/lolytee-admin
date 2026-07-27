@@ -50,10 +50,6 @@ const STATUS_STYLES = {
   Cancelled: { bg: "#F1D8D8", fg: "#8A2E2E" },
 };
 
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
-
 function emptyOrder() {
   return {
     id: null, // null means "not saved yet" — a real id comes back from Supabase on insert
@@ -95,10 +91,7 @@ export default function AdminDashboard() {
     link.href =
       "https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,500&family=Karla:wght@400;500;600;700;800&display=swap";
     document.head.appendChild(link);
-    link.onload = () => setFontsReady(true);
-    const t = setTimeout(() => setFontsReady(true), 800);
     return () => {
-      clearTimeout(t);
       document.head.removeChild(link);
     };
   }, []);
@@ -143,7 +136,12 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (authed) loadOrders();
+    if (!authed) return;
+    // Avoid calling setState synchronously inside an effect — schedule async
+    const tid = setTimeout(() => {
+      loadOrders();
+    }, 0);
+    return () => clearTimeout(tid);
   }, [authed, loadOrders]);
 
  // Live-update: new/changed/deleted orders show up instantly, no reload needed
@@ -717,10 +715,6 @@ function OrderModal({ order, onClose, onSave, saving }) {
       </form>
     </div>
   );
-}
-
-function orderExistsLabel() {
-  return true;
 }
 
 const labelStyle = {
