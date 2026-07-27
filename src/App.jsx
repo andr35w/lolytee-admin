@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Plus, Search, LogOut, Phone, Calendar, User, Trash2, Pencil, X, ChefHat, ClipboardList, Loader2, RefreshCw } from "lucide-react";
 
@@ -180,9 +180,19 @@ export default function AdminDashboard() {
     const events = ["mousemove", "keydown", "click", "touchstart", "scroll"];
     events.forEach((evt) => window.addEventListener(evt, markActive));
 
-    const idleCheck = setInterval(() => {
+    let signingOut = false;
+
+    const idleCheck = setInterval(async () => {
+      if (signingOut) return; // a sign-out attempt is already in progress
       if (Date.now() - lastActivity > 15 * 60 * 1000) {
-        supabase.auth.signOut();
+        signingOut = true;
+        try {
+          await supabase.auth.signOut();
+        } catch (err) {
+          console.error("Idle auto sign-out failed:", err);
+        } finally {
+          signingOut = false;
+        }
       }
     }, 30 * 1000);
 
