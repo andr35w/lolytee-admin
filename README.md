@@ -1,16 +1,28 @@
-# React + Vite
+# Lolytee Catering — Admin Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Staff-only order management dashboard for Lolytee Catering Services.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Staff log in with their own email + password (Supabase Auth)
+- View, search, and filter all customer orders in real time
+- Add new orders manually (phone/walk-in bookings)
+- Update order status (New, Confirmed, In Progress, Completed, Cancelled)
+- Automatically signs out after 15 minutes of inactivity
+- Orders update live across all logged-in staff, no manual refresh needed
 
-## React Compiler
+## Tech stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React + Vite
+- Supabase (database, authentication, row-level security)
+- Deployed on Vercel
 
-## Expanding the ESLint configuration
+## Related project
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The public-facing ordering website lives in a separate repository: `lolytee-website`.
+
+## Backups
+
+Order data is automatically backed up to CSV every 7 days via a scheduled
+GitHub Actions workflow (`.github/workflows/backup-orders.yml`), stored in
+the `backups/` folder in this repo.
