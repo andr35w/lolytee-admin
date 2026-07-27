@@ -136,14 +136,18 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!authed) return;
-    // Avoid calling setState synchronously inside an effect — schedule async
     const tid = setTimeout(() => {
-      loadOrders();
+      if (!authed) {
+        setOrders([]);
+      } else {
+        loadOrders();
+      }
     }, 0);
-    return () => clearTimeout(tid);
+    return () => {
+      clearTimeout(tid);
+      loadRequestId.current += 1; // invalidate any in-flight request from this session
+    };
   }, [authed, loadOrders]);
-
  // Live-update: new/changed/deleted orders show up instantly, no reload needed
   useEffect(() => {
     if (!authed) return;
