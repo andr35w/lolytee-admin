@@ -2,9 +2,13 @@ name: Backup Orders
 
 on:
   schedule:
-    # Runs every 7 days at 03:00 UTC
-    - cron: "0 3 */7 * *"
+    # Runs every week on Sunday at 03:00 UTC
+    - cron: "0 3 * * 0"
   workflow_dispatch: # lets you also trigger it manually from the Actions tab
+
+concurrency:
+  group: backup-orders
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -14,15 +18,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
-        run: npm install @supabase/supabase-js
+        run: npm ci
 
       - name: Run backup script
         env:
