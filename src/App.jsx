@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Plus, Search, LogOut, Phone, Calendar, User, Trash2, Pencil, X, ChefHat, ClipboardList, Loader2 } from "lucide-react";
+import { Plus, Search, LogOut, Phone, Calendar, User, Trash2, Pencil, X, ChefHat, ClipboardList, Loader2, RefreshCw } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // SUPABASE CONFIG — same project as the public website.
@@ -78,6 +78,7 @@ export default function AdminDashboard() {
   const [staffName, setStaffName] = useState("");
 
   const [orders, setOrders] = useState([]);
+  const loadRequestId = useRef(0); // incremented each time we start a load, so we can ignore stale responses
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -120,12 +121,17 @@ export default function AdminDashboard() {
 
   // Load orders from shared storage once authed
   const loadOrders = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
     setLoading(true);
     setLoadError("");
     const { data, error } = await supabase
       .from("orders")
       .select("*")
       .order("created_at", { ascending: false });
+
+    // If a newer refresh started while this one was in flight, ignore this
+    // older response so it can't overwrite fresher data.
+    if (requestId !== loadRequestId.current) return;
 
     if (error) {
       setLoadError("Could not load orders — check your connection and try again.");
@@ -154,6 +160,47 @@ export default function AdminDashboard() {
       supabase.removeChannel(channel);
     };
   }, [authed, loadOrders]); 
+
+  // Safety-net auto-refresh every 5 minutes, in case a live update is missed
+  useEffect(() => {
+    if (!authed) return;
+    const interval = setInterval(() => {
+      loadOrders();
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [authed, loadOrders]);
+
+  // Automatically sign out after 15 minutes of no activity (mouse, keyboard, touch)
+  // — useful if staff share one computer and someone forgets to log out.
+  useEffect(() => {
+    if (!authed) return;
+
+    let lastActivity = Date.now();
+    const markActive = () => { lastActivity = Date.now(); };
+    const events = ["mousemove", "keydown", "click", "touchstart", "scroll"];
+    events.forEach((evt) => window.addEventListener(evt, markActive));
+
+    let signingOut = false;
+
+    const idleCheck = setInterval(async () => {
+      if (signingOut) return; // a sign-out attempt is already in progress
+      if (Date.now() - lastActivity > 15 * 60 * 1000) {
+        signingOut = true;
+        try {
+          await supabase.auth.signOut();
+        } catch (err) {
+          console.error("Idle auto sign-out failed:", err);
+        } finally {
+          signingOut = false;
+        }
+      }
+    }, 30 * 1000);
+
+    return () => {
+      events.forEach((evt) => window.removeEventListener(evt, markActive));
+      clearInterval(idleCheck);
+    };
+  }, [authed]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -397,6 +444,14 @@ export default function AdminDashboard() {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          <button
+            onClick={loadOrders}
+            disabled={loading}
+            title="Refresh orders"
+            style={{ display: "flex", alignItems: "center", gap: "6px", background: "#fff", color: "#5A4438", border: "1.5px solid rgba(42,27,20,.16)", borderRadius: "999px", padding: "12px 16px", fontWeight: 700, fontSize: "14px", cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}
+          >
+            <RefreshCw size={15} />
+          </button>
           <button
             onClick={() => setModalOrder(emptyOrder())}
             style={{ display: "flex", alignItems: "center", gap: "8px", background: "#D5311C", color: "#fff", border: "none", borderRadius: "999px", padding: "12px 20px", fontWeight: 700, fontSize: "14.5px", cursor: "pointer", boxShadow: "0 10px 20px -8px rgba(213,49,28,.5)" }}
